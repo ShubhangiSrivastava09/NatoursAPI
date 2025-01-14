@@ -5,8 +5,6 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import mongoose from "mongoose";
 import morgan from "morgan";
-import { productRouter } from "./Routes/products.js";
-import { UserLogin } from "./Routes/resgister-user.js";
 import { AuthUsers } from "./Routes/auth-users.js";
 import { ToursRoute } from "./Routes/tours.js";
 import ErrorHandler from "./utils/errorHandler.js";
@@ -44,9 +42,6 @@ console.log(process.env.NODE_ENV);
 //   next();
 // });
 app.use(morgan("dev"));
-app.use("/products", productRouter);
-
-app.use("/register", UserLogin);
 // app.use((req, res, next) => {
 //   console.log("Next middleware");
 //   next();
