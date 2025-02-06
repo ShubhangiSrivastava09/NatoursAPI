@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import slugify from "slugify";
+import User from "./UserTour.model.js";
+import path from "path";
 // import validator from 'validator';
 
 const tourSchema = new mongoose.Schema(
@@ -78,6 +80,32 @@ const tourSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    startLocation: {
+      // GeoJSON
+      type: {
+        type: String,
+        default: "Point",
+        enum: ["Point"],
+      },
+      coordinates: [Number],
+      address: String,
+      description: String,
+    },
+    //locations: Array
+    location: [
+      {
+        type: {
+          type: String,
+          default: "Point",
+          enum: ["Point"],
+        },
+        coordinates: [Number],
+        adress: String,
+        description: String,
+        day: { type: Number, required: true, unique: true, min: 1, max: 10 },
+      },
+    ],
+    guides: [{ type: mongoose.Schema.ObjectId, ref: "UserTour" }],
   },
   {
     toJSON: { virtuals: true },
@@ -89,21 +117,30 @@ tourSchema.virtual("durationWeeks").get(function () {
   return this.duration / 7;
 });
 
+// Virtual populate - This is used to populate the reviews in the tour model
+
+tourSchema.virtual("reviews", {
+  ref: "Review",
+  foreignField: "tour",
+  localField: "_id",
+});
+
 // DOCUMENT MIDDLEWARE: runs before .save() and .create()
 tourSchema.pre("save", function (next) {
   this.slug = slugify(this.name, { lower: true });
   next();
 });
 
-// tourSchema.pre('save', function(next) {
-//   console.log('Will save document...');
-//   next();
-// });
+tourSchema.pre("save", function (next) {
+  this.slug = slugify(this.name, { lower: true });
+  next();
+});
 
-// tourSchema.post('save', function(doc, next) {
-//   console.log(doc);
-//   next();
-// });
+tourSchema.pre("save", async function (next) {
+  const guidesPromise = this.guides.map(async (id) => await User.findById(id));
+  this.guides = await Promise.all(guidesPromise);
+  next();
+});
 
 // QUERY MIDDLEWARE
 // tourSchema.pre('find', function(next) {
@@ -111,6 +148,14 @@ tourSchema.pre(/^find/, function (next) {
   this.find({ secretTour: { $ne: true } });
 
   this.start = Date.now();
+  next();
+});
+
+tourSchema.pre(/^find/, function (next) {
+  this.populate({
+    path: "guides",
+    select: "-__v -passwordChangedAt",
+  });
   next();
 });
 
