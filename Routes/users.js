@@ -1,12 +1,14 @@
 import express from "express";
 
-import { protect } from "./auth-users.js";
+import { protect, restrictTo } from "./auth-users.js";
 import UserTour from "../Models/UserTour.model.js";
 import { CatchError } from "../utils/catchError.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import { deleteOne } from "../utils/factoryFunctions.js";
 
 const router = express.Router();
+
+router.use(protect);
 
 const filteredbody = (obj, ...allowedFields) => {
   const newObj = {};
@@ -16,6 +18,25 @@ const filteredbody = (obj, ...allowedFields) => {
   return newObj;
 };
 
+const getMe = (req, res, next) => {
+  req.params.id = req.user._id;
+  next();
+};
+
+router.route("/getUser").get(
+  protect,
+  getMe,
+  CatchError(async (req, res) => {
+    if (req.params.id === req.user._id) {
+      const user = await UserTour.findById(req.user._id);
+      return res.json({
+        status: "Success",
+        data: user,
+      });
+    }
+  })
+);
+router.use(restrictTo("admin"));
 router.route("/getAllUsers").get(
   CatchError(async (req, res, next) => {
     if (req.body.length === 0) {
@@ -26,18 +47,6 @@ router.route("/getAllUsers").get(
       status: "Success",
       data: await UserTour.find(),
     });
-  })
-);
-router.route("/getUser").get(
-  protect,
-  CatchError(async (req, res) => {
-    if (req.params.id === req.user._id) {
-      const user = await UserTour.findById(req.user._id);
-      return res.json({
-        status: "Success",
-        data: user,
-      });
-    }
   })
 );
 router.route("/updateUser").patch(

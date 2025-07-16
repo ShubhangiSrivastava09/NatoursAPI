@@ -7,8 +7,8 @@ import { deleteOne, updateOne } from "../utils/factoryFunctions.js";
 
 const router = express.Router({ mergeParams: true });
 
+router.use(protect); // Ensure the user is authenticated for all routes in this router
 router.route("/").post(
-  protect,
   restrictTo("user"),
   CatchError(async (req, res, next) => {
     if (!req.body.tour) req.body.tour = req.params.tourId;
@@ -42,6 +42,8 @@ router.route("/").get(
 );
 router
   .route("/update/:id")
-  .patch(protect, restrictTo("user", "admin"), updateOne(Review));
-router.route("/delete/:id").delete(deleteOne(Review));
+  .patch(restrictTo("user", "admin"), updateOne(Review));
+router
+  .route("/delete/:id")
+  .delete(restrictTo("user", "admin"), deleteOne(Review));
 export { router as ReviewRouter };
